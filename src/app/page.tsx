@@ -1,101 +1,127 @@
-import Image from "next/image";
+"use client"
+import React, { useEffect, useState } from 'react';
+import { WebMidi } from 'webmidi';
+import { Piano, KeyboardShortcuts, MidiNumbers } from 'react-piano';
+import * as Tone from 'tone';
+import 'react-piano/dist/styles.css';
+import styles from '../styles/Home.module.css';
 
-export default function Home() {
+const Home = () => {
+  const [activeKeys, setActiveKeys] = useState([]);
+  const [audioStarted, setAudioStarted] = useState(false);
+  const synth = new Tone.PolySynth(Tone.Synth).toDestination();
+
+  useEffect(() => {
+    WebMidi.enable((err) => {
+      if (err) {
+        console.error('WebMidi could not be enabled.', err);
+      } else {
+        console.log('WebMidi enabled!');
+
+        const inputs = WebMidi.inputs;
+        inputs.forEach((device, index) => {
+          console.log(`${index}: ${device.name}`)
+          console.log('device :>> ', device);
+        })
+
+        const input = inputs[0];
+        if (input) {
+          input.addListener('noteon', 'all', (e) => {
+            handleNoteOn(e.note.number);
+          });
+
+          input.addListener('noteoff', 'all', (e) => {
+            handleNoteOff(e.note.number);
+          });
+        } else {
+          console.log('No MIDI input devices found.');
+        }
+      }
+    });
+
+    return () => {
+      WebMidi.inputs.forEach((input) => {
+        input.removeListener('noteon');
+        input.removeListener('noteoff');
+      });
+    };
+  }, []);
+
+  const handleNoteOn = (noteNumber) => {
+    console.log('noteNumber :>> ', noteNumber);
+    setActiveKeys((prevKeys) => [...prevKeys, noteNumber]);
+    // synth.triggerAttack(Tone.Frequency(noteNumber, "midi").toFrequency());
+  };
+
+  const handleNoteOff = (noteNumber) => {
+    setActiveKeys((prevKeys) => prevKeys.filter((key) => key !== noteNumber));
+    synth.triggerRelease(Tone.Frequency(noteNumber, "midi").toFrequency());
+  };
+
+
+  useEffect(() => {
+    synth.triggerAttack(Tone.Frequency(activeKeys[activeKeys.length - 1], "midi").toFrequency())
+    return () => {
+
+      synth.triggerRelease(Tone.Frequency(activeKeys[activeKeys.length - 1], "midi").toFrequency());
+
+    }
+  }, [activeKeys])
+
+
+
+  // const startAudio = async () => {
+  //   await Tone.start();
+  //   setAudioStarted(true);
+  //   console.log('Audio started');
+  //   await Tone.stop()
+  //   setAudioStarted(false);
+  // };
+
+  const startAudio = async () => {
+    await Tone.start();
+    setAudioStarted(true);
+    console.log('Audio started');
+  };
+
+
+  const noteRangeKeyB = {
+    first: MidiNumbers.fromNote('c4'),
+    last: MidiNumbers.fromNote('c6'),
+  };
+  const noteRange = {
+    first: MidiNumbers.fromNote('a0'),
+    last: MidiNumbers.fromNote('c8'),
+  };
+
+  const keyboardShortcuts = KeyboardShortcuts.create({
+    firstNote: noteRangeKeyB.first,
+    lastNote: noteRangeKeyB.last,
+    keyboardConfig: KeyboardShortcuts.HOME_ROW,
+  });
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+    <div className={styles.container}>
+      <h1>Virtual Piano</h1>
+      {!audioStarted && (
+        <button onClick={startAudio}>Start Audio</button>
+      )}
+      <Piano
+        noteRange={noteRange}
+        playNote={(midiNumber) => {
+          console.log('playing note :>> ', midiNumber);
+          handleNoteOn(midiNumber);
+        }}
+        stopNote={(midiNumber) => {
+          console.log('stopping note :>> ', midiNumber);
+          handleNoteOff(midiNumber);
+        }}
+        activeNotes={activeKeys}
+        width={1000}
+        keyboardShortcuts={keyboardShortcuts}
+      />
     </div>
   );
-}
+};
+
+export default Home;

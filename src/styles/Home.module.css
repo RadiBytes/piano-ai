@@ -1,0 +1,36 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  background-color: #f0f0f0;
+}
+
+.piano {
+  display: flex;
+  margin-top: 20px;
+}
+
+.key {
+  width: 40px;
+  height: 200px;
+  margin: 1px;
+  background-color: white;
+  border: 1px solid #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.key.active {
+  background-color: yellow;
+}
+
+.key:nth-child(2n) {
+  background-color: black;
+  height: 120px;
+  margin-top: auto;
+  border: 1px solid #000;
+  color: white;
+}
